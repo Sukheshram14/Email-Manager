@@ -1,0 +1,339 @@
+{
+  "name": "Email Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "id": "9233f270-a0dc-4ae1-8f4f-2aba4b56cf7c",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "position": [
+        -1040,
+        144
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "phPh5a09vrziL9sN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}",
+        "simple": false,
+        "options": {}
+      },
+      "id": "cd8d80a7-14dc-4dcd-901f-7bc65ec13033",
+      "name": "Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        -592,
+        16
+      ],
+      "webhookId": "[REDACTED_WEBHOOK_ID]",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "phPh5a09vrziL9sN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"label\": \"Label name\",\n  \"label ID\": \"label ID\" \n}"
+      },
+      "id": "03ae1bbf-349f-4650-8cd5-0aca4ded9cde",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        32,
+        256
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail').item.json.id }}",
+        "labelIds": "={{ $json.output['label ID'] }}"
+      },
+      "id": "348a1f86-8273-44c1-8b6a-8631b2b6bf05",
+      "name": "Gmail1",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        224,
+        -80
+      ],
+      "webhookId": "[REDACTED_WEBHOOK_ID]",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "phPh5a09vrziL9sN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Run the task.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Objective:\nAnalyze the current email and classify it into exactly ONE of the categories below.\n\nUse the available Gmail history tools to check whether previous email correspondence exists between the sender and the user's email address. Use that history as supporting context, especially when distinguishing job opportunities, newsletters, marketing, notifications, and ongoing conversations.\n\nIMPORTANT:\n- Do NOT invent a Gmail label ID.\n- Do NOT return the category name.\n- Do NOT return JSON.\n- Do NOT return explanations.\n- Respond with ONLY the corresponding Gmail Label ID.\n\nUSER EMAIL:\n[REDACTED_EMAIL]\n\nCURRENT EMAIL:\n\nSender:\n{{ $json.from.value[0].address }}\n\nSender Name:\n{{ $json.from.value[0].name }}\n\nTo:\n{{ $json.to.value.map(r => r.address).join(', ') }}\n\nCC:\n{{ $json.cc.value.map(r => r.address).join(', ') }}\n\nSubject:\n{{ $json.subject }}\n\nBody:\n{{ $json.text }}\n\nExisting Gmail Labels:\n{{ $json.labelIds.join(', ') }}\n\nAuto-Submitted:\n{{ $json.headers['auto-submitted'] }}\n\nSender Header:\n{{ $json.headers.sender }}\n\nIn-Reply-To:\n{{ $json.headers['in-reply-to'] }}\n\nReferences:\n{{ $json.headers.references }}\n\nList-Unsubscribe:\n{{ $json.headers['list-unsubscribe'] }}\n\nPrecedence:\n{{ $json.headers.precedence }}\n\n\nAVAILABLE CATEGORIES:\n\n1. JOB - ACTION\nLabel ID: Label_1\n\nUse when:\n- A job-related email requires the user to take action.\n- Application needs completion.\n- Assessment/test needs to be completed.\n- Recruiter asks for documents/details.\n- User must confirm something.\n- There is a job-related deadline or required action.\n\nExamples:\n- \"Complete your application\"\n- \"Submit your documents\"\n- \"Take the coding assessment\"\n- \"Interview confirmation requiring action\"\n\n\n2. JOB - APPLICATION\nLabel ID: Label_2\n\nUse when:\n- The email confirms an application was submitted.\n- Application status is provided.\n- Application was received.\n- Application is under review.\n- Application has been rejected/advanced.\n- General status update about an existing job application.\n\nExamples:\n- \"Application submitted\"\n- \"We received your application\"\n- \"Your application status\"\n\n\n3. JOB - OPPORTUNITY\nLabel ID: Label_3\n\nUse when:\n- The email primarily contains a job vacancy or job opportunity.\n- Job alerts.\n- Recruiter job listings.\n- New positions matching the user's profile.\n- Job recommendations that do not require immediate action.\n\nExamples:\n- Indeed job alert\n- LinkedIn job recommendations\n- \"10 developer roles we found\"\n- \"AI Engineer opportunities\"\n\n\n4. JOB - INTERVIEW\nLabel ID: Label_4\n\nUse when:\n- Interview scheduling.\n- Interview invitation.\n- Interview confirmation.\n- Interview preparation.\n- Interview result.\n- Recruiter communication specifically about an interview.\n\nExamples:\n- \"Interview scheduled\"\n- \"Technical interview invitation\"\n- \"Interview feedback\"\n\n\n5. CAMPUS - PLACEMENT\nLabel ID: Label_5\n\nUse when:\n- College placement activities.\n- Campus recruitment.\n- Placement drives.\n- Campus hiring.\n- Company selection process through college.\n- Placement assessments or instructions.\n\nExamples:\n- Hexaware campus hiring\n- Campus interview\n- Placement registration\n- College recruitment announcement\n\n\n6. INTERNSHIP\nLabel ID: Label_6\n\nUse when:\n- Internship opportunities.\n- Internship applications.\n- Internship selection.\n- Internship onboarding.\n- Internship assessments.\n- Internship-related communications.\n\nExamples:\n- Virtual internship\n- Internship registration\n- Internship offer\n- Internship application status\n\n\n7. PROJECT\nLabel ID: Label_7\n\nUse when:\n- Personal or academic project communication.\n- Project collaboration.\n- GitHub project invitations.\n- Project tasks or discussions.\n- Software/project-related collaboration that is not primarily a job opportunity.\n\nExamples:\n- GitHub collaboration\n- Project discussion\n- Team project update\n\n\n8. HACKATHON\nLabel ID: Label_8\n\nUse when:\n- Hackathons.\n- Coding competitions.\n- Developer competitions.\n- Kaggle competitions.\n- Devpost events.\n- Build challenges.\n\nExamples:\n- \"Build with AI\"\n- Kaggle competition\n- Hackathon registration\n- Coding challenge\n\n\n9. LEARNING\nLabel ID: Label_9\n\nUse when:\n- Courses.\n- Educational resources.\n- Certifications.\n- NPTEL/SWAYAM.\n- Learning announcements.\n- Course results.\n- Exam/hall-ticket information.\n- Study resources.\n- Technical learning newsletters that are primarily educational.\n\nExamples:\n- NPTEL exam result\n- Course announcement\n- Assignment solution\n- Certification course\n\n\n10. SECURITY\nLabel ID: Label_10\n\nUse when:\n- Login alerts.\n- New sign-in.\n- OTP/security codes.\n- Password/security changes.\n- OAuth authorization alerts.\n- Suspicious activity.\n- Account security notifications.\n\nExamples:\n- Google new sign-in\n- OpenAI new login\n- Amazon verification code\n- Microsoft security alert\n\nSecurity takes priority over other categories when the primary purpose is account security.\n\n\n11. SERVICE\nLabel ID: Label_11\n\nUse when:\n- Routine account/service notifications.\n- Billing.\n- Account status.\n- Service-generated updates.\n- Delivery/service notifications.\n- Product/service operational information.\n\nExamples:\n- Airtel bill\n- Service account notification\n- Subscription/account update\n\nIf the email is specifically a security alert, use SECURITY instead.\n\n\n12. PERSONAL\nLabel ID: Label_12\n\nUse when:\n- Direct personal communication.\n- Personal conversations.\n- Messages from friends, classmates, colleagues, or known contacts that don't fit another category.\n- Human-to-human communication unrelated to jobs, internships, learning, projects, etc.\n\n\n13. NEWSLETTER\nLabel ID: Label_13\n\nUse when:\n- Recurring informational newsletter.\n- Educational/career newsletter that is mainly informational.\n- Digest emails.\n- Weekly/monthly summaries.\n- Content updates without a specific job/application/action requirement.\n\nExamples:\n- LeetCode Weekly Digest\n- Career newsletter\n- Developer newsletter\n\nIf the primary purpose is selling/promoting something, use MARKETING instead.\n\n\n14. MARKETING\nLabel ID: Label_14\n\nUse when:\n- Promotional email.\n- Advertisement.\n- Sales pitch.\n- Product promotion.\n- Promotional offer.\n- Generic promotional campaign.\n- Cold promotional outreach.\n\nIndicators may include:\n- List-Unsubscribe\n- CATEGORY_PROMOTIONS\n- Precedence: Bulk\n- Promotional language\n\nHowever, these indicators alone do NOT determine the category. Judge the actual purpose of the email.\n\nIf an email is a legitimate security/account/service notification, use SECURITY or SERVICE instead of MARKETING.\n\n\nCLASSIFICATION PRIORITY:\n\nWhen multiple categories appear possible, use this priority:\n\n1. SECURITY\n2. JOB - ACTION\n3. JOB - INTERVIEW\n4. CAMPUS - PLACEMENT\n5. INTERNSHIP\n6. JOB - APPLICATION\n7. HACKATHON\n8. PROJECT\n9. LEARNING\n10. JOB - OPPORTUNITY\n11. SERVICE\n12. PERSONAL\n13. NEWSLETTER\n14. MARKETING\n\n\nIMPORTANT DECISION RULES:\n\n- A job listing → JOB - OPPORTUNITY\n- A job application confirmation/status → JOB - APPLICATION\n- A job application requiring action → JOB - ACTION\n- An interview email → JOB - INTERVIEW\n- College placement communication → CAMPUS - PLACEMENT\n- Internship communication → INTERNSHIP\n- Hackathon/competition → HACKATHON\n- Course/education → LEARNING\n- Project/GitHub collaboration → PROJECT\n- Security/login/OTP → SECURITY\n- Normal service/account/billing notification → SERVICE\n- Personal human conversation → PERSONAL\n- Recurring informational digest → NEWSLETTER\n- Promotional/sales email → MARKETING\n\nPrior email history should be used as CONTEXT, not as the sole deciding factor.\n\nA cold email is NOT automatically MARKETING.\nA known sender is NOT automatically SERVICE.\nAn unsubscribe link is NOT automatically MARKETING.\n\nFINAL OUTPUT:\nReturn ONLY ONE of these exact values:\n\nLabel_1\nLabel_2\nLabel_3\nLabel_4\nLabel_5\nLabel_6\nLabel_7\nLabel_8\nLabel_9\nLabel_10\nLabel_11\nLabel_12\nLabel_13\nLabel_14\n\nNo quotes.\nNo JSON.\nNo explanation.\nNo additional text."
+        }
+      },
+      "id": "e0357c61-d1e4-4c8a-bad6-c20106a612c9",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -240,
+        16
+      ],
+      "typeVersion": 1.9,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', ``, 'boolean') }}",
+        "filters": {
+          "q": "=from:{{ $fromAI('email') }}"
+        }
+      },
+      "id": "2dbadbce-39f6-4d84-ad50-4531e0b76c87",
+      "name": "Get Email",
+      "type": "n8n-nodes-base.gmailTool",
+      "position": [
+        -240,
+        256
+      ],
+      "webhookId": "[REDACTED_WEBHOOK_ID]",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "phPh5a09vrziL9sN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "labelIds": [
+            "SENT"
+          ],
+          "q": "=to:{{ $fromAI('email') }}"
+        }
+      },
+      "id": "dee0f195-7276-4fa3-a133-f540eb0b3115",
+      "name": "Check Sent",
+      "type": "n8n-nodes-base.gmailTool",
+      "position": [
+        -112,
+        256
+      ],
+      "webhookId": "[REDACTED_WEBHOOK_ID]",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "phPh5a09vrziL9sN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        256
+      ],
+      "id": "753af7e2-b3ee-419b-82e3-20f7d756ed54",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "40IkXMXDq1wO2h3D",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 40
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        112
+      ],
+      "id": "9a944ab7-330e-450a-98ec-48a7b68ee57c",
+      "name": "Wait",
+      "webhookId": "50c3310e-2015-4765-bcea-a85057f468ef"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -816,
+        144
+      ],
+      "id": "234592a6-a266-4d87-8720-9adc1240548a",
+      "name": "Loop Over Items"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Gmail1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Sent": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5cc9e7b4-6535-492e-ba50-d6c9d0c5c297",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca85712c2372e1561495bf0b70fde6586984367fd6b743670f4a6fb6ac29daeb"
+  },
+  "nodeGroups": [],
+  "id": "ES3McF3lwFFtpEBP",
+  "tags": []
+}
